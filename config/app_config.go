@@ -14,9 +14,13 @@ type Config struct {
 }
 
 func LoadConfig() {
-	log.Println("Loading Server Configurations...")
+	log.Println("Loading config...")
 
-	viper.SetConfigFile(".env")
+	viper.AddConfigPath(".")
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+
+	viper.AutomaticEnv()
 
 	err := viper.ReadInConfig()
 
