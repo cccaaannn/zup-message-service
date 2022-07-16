@@ -1,4 +1,4 @@
-package config
+package configs
 
 import (
 	"log"
@@ -9,8 +9,9 @@ import (
 var AppConfig *Config
 
 type Config struct {
-	Port             string `mapstructure:"PORT"`
-	ConnectionString string `mapstructure:"POSTGRESQL_CONNECTION_STRING"`
+	Port                       string `mapstructure:"PORT"`
+	PostgresqlConnectionString string `mapstructure:"POSTGRESQL_CONNECTION_STRING"`
+	RabbitmqConnectionString   string `mapstructure:"RABBITMQ_CONNECTION_STRING"`
 }
 
 func LoadConfig() {
@@ -33,5 +34,4 @@ func LoadConfig() {
 		log.Fatal(err)
 	}
 
-	log.Println(AppConfig.ConnectionString)
 }
