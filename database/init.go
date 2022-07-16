@@ -23,10 +23,10 @@ func Connect(connectionString string) {
 		log.Fatal(err)
 		panic("Cannot connect to DB")
 	}
-	log.Println("Connected to Database...")
+	log.Printf("Connected to DB with %s", connectionString)
 }
 
 func Migrate() {
 	Connection.AutoMigrate(&model.Message{})
-	log.Println("Database Migration Completed...")
+	log.Println("Database migration completed...")
 }
