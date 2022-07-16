@@ -1,13 +1,13 @@
-package controller
+package controllers
 
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"time"
+	"zup-message-service/services"
 
 	"encoding/json"
-	"strconv"
-	"zup-message-service/service"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -51,7 +51,7 @@ func reader(conn *websocket.Conn, messageId uint64, userId uint64) {
 
 		time.Sleep(3 * time.Second)
 
-		messages := service.GetUnReadMessagesAfter(messageId, userId)
+		messages := services.GetUnReadMessagesAfter(messageId, userId)
 
 		json_messages, _ := json.Marshal(messages)
 
