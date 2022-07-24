@@ -1,16 +1,16 @@
 package controllers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
-	"zup-message-service/services"
-
-	"encoding/json"
+	"zup-message-service/rabbitmq"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/streadway/amqp"
 )
 
 var upgrader = websocket.Upgrader{
@@ -20,47 +20,57 @@ var upgrader = websocket.Upgrader{
 }
 
 func WS(w http.ResponseWriter, r *http.Request) {
-	// upgrade this connection to a WebSocket
-	// connection
-	ws, err := upgrader.Upgrade(w, r, nil)
+
+	// ws connection
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 	}
 
-	// messageId, err := strconv.ParseUint(r.Header.Get("after"), 0, 0)
-	// userId, err := strconv.ParseUint(r.Header.Get("user"), 0, 0)
+	defer conn.Close()
 
-	messageId, err := strconv.ParseUint(mux.Vars(r)["after"], 0, 0)
+	// rabbitmq channel
+	channel, err := rabbitmq.Connection.Channel()
+	if err != nil {
+		log.Println(err)
+	}
+
+	defer channel.Close()
+
+	// TODO get userId from token
 	userId, err := strconv.ParseUint(mux.Vars(r)["user"], 0, 0)
-
-	log.Println(messageId)
-	log.Println(userId)
-
 	log.Println("Client Connected")
-	// err = ws.WriteMessage(1, []byte("Hi Client!"))
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// listen indefinitely for new messages coming
-	// through on our WebSocket connection
-	reader(ws, messageId, userId)
+
+	// Get consumer
+	messages, err := rabbitmq.GetConsumer(channel, strconv.FormatUint(userId, 10))
+
+	// Read from queue
+	if err == nil {
+		go closeOnDisconnect(conn, channel)
+
+		for message := range messages {
+			json_message, _ := json.Marshal(string(message.Body))
+
+			log.Println("ALIVE")
+
+			err := conn.WriteMessage(1, json_message)
+
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+
 }
 
-func reader(conn *websocket.Conn, messageId uint64, userId uint64) {
+func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel) {
 	for {
-
-		time.Sleep(3 * time.Second)
-
-		messages := services.GetUnReadMessagesAfter(messageId, userId)
-
-		json_messages, _ := json.Marshal(messages)
-
-		err := conn.WriteMessage(1, json_messages)
-
+		time.Sleep(time.Second)
+		_, _, err := conn.ReadMessage()
 		if err != nil {
-			log.Println(err)
-			return
+			channel.Close()
+			conn.Close()
+			break
 		}
-
 	}
 }

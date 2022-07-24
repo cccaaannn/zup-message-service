@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"zup-message-service/configs"
 	"zup-message-service/database"
+	"zup-message-service/rabbitmq"
 	"zup-message-service/routes"
 
 	"github.com/gorilla/mux"
@@ -20,11 +21,16 @@ func main() {
 	database.Connect(configs.AppConfig.PostgresqlConnectionString)
 	database.Migrate()
 
+	// RabbitMQ connection
+	rabbitmq.Connect(configs.AppConfig.RabbitmqConnectionString)
+	defer rabbitmq.Disconnect()
+
 	// Initialize the router
 	router := mux.NewRouter().StrictSlash(true)
 
 	// Register Routes
 	routes.RegisterMessageRoutes(router)
+	routes.RegisterUserOnlineStatusRoutes(router)
 
 	// cors
 	handler := cors.AllowAll().Handler(router)

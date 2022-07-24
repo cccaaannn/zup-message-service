@@ -1,8 +1,13 @@
 package services
 
 import (
+	"strconv"
+
+	"bytes"
+	"encoding/json"
 	"zup-message-service/database"
 	"zup-message-service/models"
+	"zup-message-service/rabbitmq"
 )
 
 func GetUnreadMessages(fromId uint64, toId uint64) []models.Message {
@@ -13,7 +18,7 @@ func GetUnreadMessages(fromId uint64, toId uint64) []models.Message {
 
 func GetAllMessages(fromId uint64, toId uint64) []models.Message {
 	var messages []models.Message
-	database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?)", fromId, toId, toId, fromId).Find(&messages)
+	database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", fromId, toId, toId, fromId).Find(&messages)
 	return messages
 }
 
@@ -32,6 +37,14 @@ func SetMessageAsRead(messageId uint64) bool {
 }
 
 func CreateMessage(message *models.Message) bool {
+
+	// Fist save entity to db to get id
 	database.Connection.Create(&message)
+
+	// TODO only publish to queue if user is connected
+	byteBuffer := new(bytes.Buffer)
+	json.NewEncoder(byteBuffer).Encode(message)
+	rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.Itoa(message.ToId))
+
 	return true
 }
