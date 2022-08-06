@@ -9,9 +9,12 @@ import (
 var AppConfig *Config
 
 type Config struct {
-	Port                       string `mapstructure:"PORT"`
+	Port                       string `mapstructure:"SERVER_PORT"`
 	PostgresqlConnectionString string `mapstructure:"POSTGRESQL_CONNECTION_STRING"`
 	RabbitmqConnectionString   string `mapstructure:"RABBITMQ_CONNECTION_STRING"`
+
+	UserServiceUrl  string `mapstructure:"USER_SERVICE_URL"`
+	UserServicePort string `mapstructure:"USER_SERVICE_PORT"`
 }
 
 func LoadConfig() {
