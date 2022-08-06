@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 	"zup-message-service/rabbitmq"
+	"zup-message-service/services"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -38,15 +39,20 @@ func WS(w http.ResponseWriter, r *http.Request) {
 	defer channel.Close()
 
 	// TODO get userId from token
-	userId, err := strconv.ParseUint(mux.Vars(r)["user"], 0, 0)
+	userId, err := strconv.Atoi(mux.Vars(r)["user"])
 	log.Println("Client Connected")
 
 	// Get consumer
-	messages, err := rabbitmq.GetConsumer(channel, strconv.FormatUint(userId, 10))
+	messages, err := rabbitmq.GetConsumer(channel, strconv.FormatInt(int64(userId), 10))
 
 	// Read from queue
 	if err == nil {
-		go closeOnDisconnect(conn, channel)
+
+		// make user online
+		services.UpdateLastUserLogin(userId, 1)
+
+		// dc checker
+		go closeOnDisconnect(conn, channel, userId)
 
 		for message := range messages {
 			json_message, _ := json.Marshal(string(message.Body))
@@ -63,13 +69,14 @@ func WS(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel) {
+func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel, userId int) {
 	for {
 		time.Sleep(time.Second)
 		_, _, err := conn.ReadMessage()
 		if err != nil {
 			channel.Close()
 			conn.Close()
+			services.UpdateLastUserLogin(userId, 0)
 			break
 		}
 	}

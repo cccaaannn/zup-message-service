@@ -41,10 +41,14 @@ func CreateMessage(message *models.Message) bool {
 	// Fist save entity to db to get id
 	database.Connection.Create(&message)
 
-	// TODO only publish to queue if user is connected
-	byteBuffer := new(bytes.Buffer)
-	json.NewEncoder(byteBuffer).Encode(message)
-	rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.Itoa(message.ToId))
+	userOnlineStatus := GetLastUserLogin(message.ToId)
+
+	// Publish to queue if user is connected
+	if userOnlineStatus.IsOnline == 1 {
+		byteBuffer := new(bytes.Buffer)
+		json.NewEncoder(byteBuffer).Encode(message)
+		rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.Itoa(message.ToId))
+	}
 
 	return true
 }
