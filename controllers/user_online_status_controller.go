@@ -13,7 +13,7 @@ import (
 func UpdateLastUserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userId, _ := strconv.Atoi(mux.Vars(r)["userId"])
+	userId, _ := strconv.ParseUint(mux.Vars(r)["userId"], 0, 8)
 	status, _ := strconv.Atoi(mux.Vars(r)["status"])
 
 	res := services.UpdateLastUserLogin(userId, status)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"zup-message-service/configs"
 	"zup-message-service/database"
+	"zup-message-service/middlewares"
 	"zup-message-service/rabbitmq"
 	"zup-message-service/routes"
 
@@ -29,8 +30,16 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// Register Routes
-	routes.RegisterMessageRoutes(router)
-	routes.RegisterUserOnlineStatusRoutes(router)
+	messageRouter := router.PathPrefix("/api/v1/messages").Subrouter()
+	userRouter := router.PathPrefix("/api/v1/messages").Subrouter()
+	wsRouter := router.PathPrefix("/api/v1/ws").Subrouter()
+
+	routes.RegisterMessageRoutes(messageRouter)
+	routes.RegisterUserOnlineStatusRoutes(userRouter)
+	routes.RegisterWsRoutes(wsRouter)
+
+	messageRouter.Use(middlewares.AuthenticationMiddleware)
+	userRouter.Use(middlewares.AuthenticationMiddleware)
 
 	// cors
 	handler := cors.AllowAll().Handler(router)
@@ -40,3 +49,19 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", configs.AppConfig.Port), handler))
 
 }
+
+// import (
+// 	"fmt"
+// 	"zup-message-service/services"
+// )
+
+// func main() {
+// 	result := services.IsUserAuthorized()
+
+// 	if result.Status {
+// 		fmt.Printf("%s\n", result.Data.Username)
+// 	} else {
+// 		fmt.Printf("%+v\n", result)
+// 	}
+
+// }

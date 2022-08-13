@@ -22,6 +22,13 @@ var upgrader = websocket.Upgrader{
 
 func WS(w http.ResponseWriter, r *http.Request) {
 
+	user := services.IsUserAuthorized(mux.Vars(r)["user"])
+	if !user.Status {
+		log.Println(user.Message)
+		return
+	}
+	userId := user.Data.Id
+
 	// ws connection
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -37,10 +44,6 @@ func WS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer channel.Close()
-
-	// TODO get userId from token
-	userId, err := strconv.Atoi(mux.Vars(r)["user"])
-	log.Println("Client Connected")
 
 	// Get consumer
 	messages, err := rabbitmq.GetConsumer(channel, strconv.FormatInt(int64(userId), 10))
@@ -69,7 +72,7 @@ func WS(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel, userId int) {
+func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel, userId uint64) {
 	for {
 		time.Sleep(time.Second)
 		_, _, err := conn.ReadMessage()

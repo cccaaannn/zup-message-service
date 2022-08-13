@@ -7,6 +7,6 @@ import (
 )
 
 func RegisterUserOnlineStatusRoutes(router *mux.Router) {
-	router.HandleFunc("/api/v1/userStatus/getStatus/{userId}", controllers.GetLastUserLogin).Methods("GET")
-	router.HandleFunc("/api/v1/userStatus/update/{userId}/{status}", controllers.UpdateLastUserLogin).Methods("PUT")
+	router.HandleFunc("/getStatus/{userId}", controllers.GetLastUserLogin).Methods("GET")
+	router.HandleFunc("/update/{userId}/{status}", controllers.UpdateLastUserLogin).Methods("PUT")
 }

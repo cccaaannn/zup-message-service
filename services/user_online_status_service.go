@@ -6,7 +6,7 @@ import (
 	"zup-message-service/models"
 )
 
-func UpdateLastUserLogin(userId int, status int) bool {
+func UpdateLastUserLogin(userId uint64, status int) bool {
 	var userOnlineStatus models.UserOnlineStatus
 	userOnlineStatus.UserId = userId
 	userOnlineStatus.IsOnline = status
