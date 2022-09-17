@@ -7,5 +7,5 @@ import (
 )
 
 func RegisterWsRoutes(router *mux.Router) {
-	router.HandleFunc("/{user}", controllers.WS)
+	router.HandleFunc("/{token}", controllers.WS)
 }

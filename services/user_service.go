@@ -1,37 +1,38 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 
+	"zup-message-service/utils"
 	"zup-message-service/configs"
 	"zup-message-service/dtos"
 )
 
-var userServicePath = "api/v1/user/isUserAuthorized"
 
-func IsUserAuthorized(userToken string) dtos.Result {
-	result := dtos.Result{Status: false, Message: "", Data: nil}
+var userServiceApiPath = "api/v1"
 
-	requestURL := fmt.Sprintf("%s:%s/%s/%s", configs.AppConfig.UserServiceUrl, configs.AppConfig.UserServicePort, userServicePath, userToken)
-	// fmt.Printf(requestURL)
-	res, err := http.Get(requestURL)
-	if err != nil {
-		fmt.Printf("error making http request: %s\n", err)
-		return result
-	}
+func getUserServiceBasePath() string {
+	return fmt.Sprintf("%s:%s/%s", configs.AppConfig.UserServiceUrl, configs.AppConfig.UserServicePort, userServiceApiPath)
+}
 
-	err = json.NewDecoder(res.Body).Decode(&result)
-	// body, err := ioutil.ReadAll(res.Body)
+func IsAuthorized(userToken string) dtos.DataResult[dtos.TokenPayload] {
+	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/authorization/%s", userToken)
+	log.Println(requestURL)
 
-	if err != nil {
-		result = dtos.Result{Status: false, Message: "", Data: nil}
-	}
+	return utils.GetApiDataResult[dtos.TokenPayload](requestURL)
+}
 
-	// fmt.Printf("status code: %d\n", res.StatusCode)
-	log.Println(result)
+func SetUserOnlineStatus(userId uint64, newStatus string, accessToken string) dtos.Result {
+	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/user/%d/online-status/%s", userId, newStatus)
+	log.Println(requestURL)
 
-	return result
+	return utils.PutApiResult(requestURL, accessToken)
+}
+
+func GetUserOnlineStatus(userId uint64, accessToken string) dtos.DataResult[dtos.UserOnlineStatus] {
+	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/user/%d/online-status", userId)
+	log.Println(requestURL)
+
+	return utils.GetApiDataResultWithToken[dtos.UserOnlineStatus](requestURL, accessToken)
 }

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"zup-message-service/models"
 	"zup-message-service/services"
+	"zup-message-service/utils"
 
 	"strconv"
 
@@ -15,7 +16,15 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	var message models.Message
 	json.NewDecoder(r.Body).Decode(&message)
-	services.CreateMessage(&message)
+
+	// TODO find a better way
+	token, err := utils.GetTokenFromHeader(r)
+	if err != nil {
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+
+	services.CreateMessage(&message, token)
 	json.NewEncoder(w).Encode(message)
 }
 

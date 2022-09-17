@@ -22,12 +22,14 @@ var upgrader = websocket.Upgrader{
 
 func WS(w http.ResponseWriter, r *http.Request) {
 
-	user := services.IsUserAuthorized(mux.Vars(r)["user"])
-	if !user.Status {
-		log.Println(user.Message)
+	token := mux.Vars(r)["token"]
+
+	tokenPayload := services.IsAuthorized(token)
+	if !tokenPayload.Status {
+		log.Println(tokenPayload.Message)
 		return
 	}
-	userId := user.Data.Id
+	userId := tokenPayload.Data.Id
 
 	// ws connection
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -52,10 +54,10 @@ func WS(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 
 		// make user online
-		services.UpdateLastUserLogin(userId, 1)
+		services.SetUserOnlineStatus(userId, "ONLINE", token)
 
 		// dc checker
-		go closeOnDisconnect(conn, channel, userId)
+		go closeOnDisconnect(conn, channel, userId, token)
 
 		for message := range messages {
 			json_message, _ := json.Marshal(string(message.Body))
@@ -72,14 +74,14 @@ func WS(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel, userId uint64) {
+func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel, userId uint64, token string) {
 	for {
 		time.Sleep(time.Second)
 		_, _, err := conn.ReadMessage()
 		if err != nil {
 			channel.Close()
 			conn.Close()
-			services.UpdateLastUserLogin(userId, 0)
+			services.SetUserOnlineStatus(userId, "OFFLINE", token)
 			break
 		}
 	}

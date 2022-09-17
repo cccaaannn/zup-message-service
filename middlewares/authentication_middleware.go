@@ -14,15 +14,15 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 		split := strings.Split(rawToken, " ")
 
 		if len(split) != 2 {
-			message := dtos.Result{Status: false, Message: "Forbidden", Data: nil}
+			message := dtos.DataResult[dtos.TokenPayload]{Status: false, Message: "Forbidden", Data: nil}
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			json.NewEncoder(w).Encode(message)
 		} else {
-			user := services.IsUserAuthorized(split[1])
+			user := services.IsAuthorized(split[1])
 			if !user.Status {
-				message := dtos.Result{Status: false, Message: "Forbidden", Data: nil}
+				message := dtos.DataResult[dtos.TokenPayload]{Status: false, Message: "Forbidden", Data: nil}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(message)

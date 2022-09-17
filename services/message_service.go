@@ -36,18 +36,18 @@ func SetMessageAsRead(messageId uint64) bool {
 	return true
 }
 
-func CreateMessage(message *models.Message) bool {
+func CreateMessage(message *models.Message, accessToken string) bool {
 
 	// Fist save entity to db to get id
 	database.Connection.Create(&message)
 
-	userOnlineStatus := GetLastUserLogin(message.ToId)
+	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
 
 	// Publish to queue if user is connected
-	if userOnlineStatus.IsOnline == 1 {
+	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == "ONLINE" {
 		byteBuffer := new(bytes.Buffer)
 		json.NewEncoder(byteBuffer).Encode(message)
-		rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.Itoa(message.ToId))
+		rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.FormatUint(message.ToId, 10))
 	}
 
 	return true
