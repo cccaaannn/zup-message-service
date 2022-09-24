@@ -2,7 +2,7 @@ package database
 
 import (
 	"log"
-	"zup-message-service/models"
+	"zup-message-service/data/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -28,6 +28,5 @@ func Connect(connectionString string) {
 
 func Migrate() {
 	Connection.AutoMigrate(&models.Message{})
-	Connection.AutoMigrate(&models.UserOnlineStatus{})
 	log.Println("Database migration completed...")
 }
