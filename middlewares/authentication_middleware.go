@@ -1,10 +1,12 @@
 package middlewares
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
-	"zup-message-service/dtos"
+	"zup-message-service/data/dtos"
+	"zup-message-service/data/enums"
 	"zup-message-service/services"
 )
 
@@ -20,14 +22,20 @@ func AuthenticationMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusForbidden)
 			json.NewEncoder(w).Encode(message)
 		} else {
-			user := services.IsAuthorized(split[1])
-			if !user.Status {
+			token := split[1]
+			tokenPayloadResult := services.IsAuthorized(token)
+			if !tokenPayloadResult.Status {
 				message := dtos.DataResult[dtos.TokenPayload]{Status: false, Message: "Forbidden", Data: nil}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				json.NewEncoder(w).Encode(message)
 			} else {
-				next.ServeHTTP(w, r)
+
+				// Add token and payload to context to access them on services
+				ctx := context.WithValue(r.Context(), enums.TOKEN, token)
+				ctx = context.WithValue(ctx, enums.TOKEN_PAYLOAD, tokenPayloadResult.Data)
+
+				next.ServeHTTP(w, r.WithContext(ctx))
 			}
 		}
 	})

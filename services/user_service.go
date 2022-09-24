@@ -6,7 +6,7 @@ import (
 
 	"zup-message-service/utils"
 	"zup-message-service/configs"
-	"zup-message-service/dtos"
+	"zup-message-service/data/dtos"
 )
 
 

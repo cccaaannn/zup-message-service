@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"zup-message-service/rabbitmq"
+	"zup-message-service/data/enums"
 	"zup-message-service/services"
+	"zup-message-service/utils/rabbitmq"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -22,6 +23,7 @@ var upgrader = websocket.Upgrader{
 
 func WS(w http.ResponseWriter, r *http.Request) {
 
+	// Raw js websocket api can not send authorization header, token is provided via url
 	token := mux.Vars(r)["token"]
 
 	tokenPayload := services.IsAuthorized(token)
@@ -54,7 +56,7 @@ func WS(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 
 		// make user online
-		services.SetUserOnlineStatus(userId, "ONLINE", token)
+		services.SetUserOnlineStatus(userId, enums.USER_ONLINE, token)
 
 		// dc checker
 		go closeOnDisconnect(conn, channel, userId, token)
@@ -81,7 +83,7 @@ func closeOnDisconnect(conn *websocket.Conn, channel *amqp.Channel, userId uint6
 		if err != nil {
 			channel.Close()
 			conn.Close()
-			services.SetUserOnlineStatus(userId, "OFFLINE", token)
+			services.SetUserOnlineStatus(userId, enums.USER_OFFLINE, token)
 			break
 		}
 	}

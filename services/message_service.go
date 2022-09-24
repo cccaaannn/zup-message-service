@@ -5,38 +5,50 @@ import (
 
 	"bytes"
 	"encoding/json"
-	"zup-message-service/database"
-	"zup-message-service/models"
-	"zup-message-service/rabbitmq"
+	"zup-message-service/data/dtos"
+	"zup-message-service/data/models"
+	"zup-message-service/data/enums"
+	"zup-message-service/utils/database"
+	"zup-message-service/utils/rabbitmq"
 )
 
-func GetUnreadMessages(fromId uint64, toId uint64) []models.Message {
+// func GetUnreadMessages(toId uint64, tokenPayload *dtos.TokenPayload) dtos.DataResult[[]models.Message] {
+// 	var messages []models.Message
+// 	database.Connection.Where("from_id=? AND to_id=? AND message_status=0", tokenPayload.Id, toId).Find(&messages)
+// 	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
+// }
+
+// func GetUnReadMessagesAfter(messageId uint64, toId uint64) dtos.DataResult[[]models.Message] {
+// 	var messages []models.Message
+// 	database.Connection.Where("id>? AND to_id=? AND message_status=0", messageId, toId).Find(&messages)
+// 	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
+// }
+
+func GetAllMessages(toId uint64, tokenPayload *dtos.TokenPayload) dtos.DataResult[[]models.Message] {
 	var messages []models.Message
-	database.Connection.Where("from_id=? AND to_id=? AND message_status=0", fromId, toId).Find(&messages)
-	return messages
+	database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", tokenPayload.Id, toId, toId, tokenPayload.Id).Find(&messages)
+	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
 }
 
-func GetAllMessages(fromId uint64, toId uint64) []models.Message {
+func SetMessageAsRead(messageId uint64, tokenPayload *dtos.TokenPayload) dtos.Result {
 	var messages []models.Message
-	database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", fromId, toId, toId, fromId).Find(&messages)
-	return messages
-}
+	database.Connection.Where("id=? AND from_id=?", messageId, tokenPayload.Id).Find(&messages)
 
-func GetUnReadMessagesAfter(messageId uint64, toId uint64) []models.Message {
-	var messages []models.Message
-	database.Connection.Where("id>? AND to_id=? AND message_status=0", messageId, toId).Find(&messages)
-	return messages
-}
+	if len(messages) == 0 {
+		return dtos.Result{Status: false, Message: "Message is not belongs to user."}
+	}
 
-func SetMessageAsRead(messageId uint64) bool {
-	var message models.Message
-	database.Connection.First(&message, messageId)
+	message := messages[0]
 	message.MessageStatus = 1
 	database.Connection.Save(&message)
-	return true
+	return dtos.Result{Status: true, Message: "Message status updated."}
 }
 
-func CreateMessage(message *models.Message, accessToken string) bool {
+func CreateMessage(message *models.Message, accessToken string, tokenPayload *dtos.TokenPayload) dtos.Result {
+
+	// From id is used from token for security
+	message.FromId = tokenPayload.Id
+	message.MessageStatus = 0
 
 	// Fist save entity to db to get id
 	database.Connection.Create(&message)
@@ -44,11 +56,13 @@ func CreateMessage(message *models.Message, accessToken string) bool {
 	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
 
 	// Publish to queue if user is connected
-	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == "ONLINE" {
+	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
 		byteBuffer := new(bytes.Buffer)
 		json.NewEncoder(byteBuffer).Encode(message)
 		rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.FormatUint(message.ToId, 10))
+
+		return dtos.Result{Status: true, Message: "Message created and queued."}
 	}
 
-	return true
+	return dtos.Result{Status: true, Message: "Message created."}
 }
