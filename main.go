@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 	"zup-message-service/configs"
-	"zup-message-service/database"
 	"zup-message-service/middlewares"
-	"zup-message-service/rabbitmq"
 	"zup-message-service/routes"
+	"zup-message-service/utils/database"
+	"zup-message-service/utils/rabbitmq"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"

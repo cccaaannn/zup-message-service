@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"zup-message-service/dtos"
+	"zup-message-service/data/dtos"
 )
 
 
