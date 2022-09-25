@@ -31,12 +31,12 @@ func main() {
 
 	// Register Routes
 	messageRouter := router.PathPrefix("/api/v1/messages").Subrouter()
-	wsRouter := router.PathPrefix("/api/v1/ws").Subrouter()
+	webSocketRouter := router.PathPrefix("/api/v1/ws").Subrouter()
 
 	routes.RegisterMessageRoutes(messageRouter)
-	routes.RegisterWsRoutes(wsRouter)
+	routes.RegisterWebSocketRoutes(webSocketRouter)
 
-	messageRouter.Use(middlewares.AuthenticationMiddleware)
+	messageRouter.Use(middlewares.AuthorizationMiddleware)
 
 	// cors
 	handler := cors.AllowAll().Handler(router)

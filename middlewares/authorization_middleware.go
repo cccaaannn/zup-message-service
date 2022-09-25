@@ -10,7 +10,7 @@ import (
 	"zup-message-service/services"
 )
 
-func AuthenticationMiddleware(next http.Handler) http.Handler {
+func AuthorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rawToken := r.Header.Get("authorization")
 		split := strings.Split(rawToken, " ")

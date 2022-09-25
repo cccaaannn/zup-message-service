@@ -1,8 +1,6 @@
 package services
 
 import (
-	"strconv"
-
 	"bytes"
 	"encoding/json"
 	"zup-message-service/data/dtos"
@@ -59,7 +57,7 @@ func CreateMessage(message *models.Message, accessToken string, tokenPayload *dt
 	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
 		byteBuffer := new(bytes.Buffer)
 		json.NewEncoder(byteBuffer).Encode(message)
-		rabbitmq.PublishMessage(byteBuffer.Bytes(), strconv.FormatUint(message.ToId, 10))
+		rabbitmq.PublishMessage(byteBuffer.Bytes(), rabbitmq.GetQueueNameForUser(message.ToId))
 
 		return dtos.Result{Status: true, Message: "Message created and queued."}
 	}
