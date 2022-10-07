@@ -30,7 +30,7 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// Register Routes
-	messageRouter := router.PathPrefix("/api/v1/messages").Subrouter()
+	messageRouter := router.PathPrefix("/api/v1/message").Subrouter()
 	webSocketRouter := router.PathPrefix("/api/v1/ws").Subrouter()
 
 	routes.RegisterMessageRoutes(messageRouter)

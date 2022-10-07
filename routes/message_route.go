@@ -8,6 +8,6 @@ import (
 
 func RegisterMessageRoutes(router *mux.Router) {
 	router.HandleFunc("/send", controllers.SendMessage).Methods("POST")
-	router.HandleFunc("/SetMessageAsRead/{id}", controllers.SetMessageAsRead).Methods("PUT")
-	router.HandleFunc("/GetAllMessages/{toId}", controllers.GetAllMessages).Methods("GET")
+	router.HandleFunc("/read/{id}", controllers.SetMessageAsRead).Methods("PUT")
+	router.HandleFunc("/conversation/{toId}", controllers.GetConversation).Methods("GET")
 }
