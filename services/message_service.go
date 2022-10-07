@@ -22,10 +22,15 @@ import (
 // 	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
 // }
 
-func GetAllMessages(toId uint64, tokenPayload *dtos.TokenPayload) dtos.DataResult[[]models.Message] {
+func GetConversation(toId uint64, pagination dtos.Pagination, tokenPayload *dtos.TokenPayload) dtos.DataResult[dtos.Pagination] {
 	var messages []models.Message
-	database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", tokenPayload.Id, toId, toId, tokenPayload.Id).Find(&messages)
-	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
+	// database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", tokenPayload.Id, toId, toId, tokenPayload.Id).Find(&messages)
+
+	tx := database.Connection.Model(messages).Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?)", tokenPayload.Id, toId, toId, tokenPayload.Id)
+	tx.Scopes(database.Paginate(&pagination, tx)).Find(&messages)
+	pagination.Content = messages
+
+	return dtos.DataResult[dtos.Pagination]{Status: true, Message: "", Data: &pagination}
 }
 
 func SetMessageAsRead(messageId uint64, tokenPayload *dtos.TokenPayload) dtos.Result {
@@ -47,6 +52,7 @@ func CreateMessage(message *models.Message, accessToken string, tokenPayload *dt
 	// From id is used from token for security
 	message.FromId = tokenPayload.Id
 	message.MessageStatus = 0
+	message.MessageType = "TEXT"
 
 	// Fist save entity to db to get id
 	database.Connection.Create(&message)

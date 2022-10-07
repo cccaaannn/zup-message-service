@@ -25,12 +25,18 @@ func SendMessage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(message)
 }
 
-func GetAllMessages(w http.ResponseWriter, r *http.Request) {
+func GetConversation(w http.ResponseWriter, r *http.Request) {
 	toId, _ := strconv.ParseUint(mux.Vars(r)["toId"], 0, 8)
+	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+
+	var pagination dtos.Pagination
+	pagination.Size = size
+	pagination.Page = page
 
 	tokenPayload := r.Context().Value(enums.TOKEN_PAYLOAD).(*dtos.TokenPayload)
 
-	messages := services.GetAllMessages(toId, tokenPayload)
+	messages := services.GetConversation(toId, pagination, tokenPayload)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(messages)
