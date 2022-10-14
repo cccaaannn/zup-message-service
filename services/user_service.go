@@ -11,10 +11,9 @@ import (
 )
 
 var client = resty.New()
-var userServiceApiPath = "api/v1"
 
 func getUserServiceBasePath() string {
-	return fmt.Sprintf("%s:%s/%s", configs.AppConfig.UserServiceUrl, configs.AppConfig.UserServicePort, userServiceApiPath)
+	return fmt.Sprintf("%s%s", configs.AppConfig.UserServiceUrl, configs.AppConfig.UserServiceBasePath)
 }
 
 func IsAuthorized(userToken string) dtos.DataResult[dtos.TokenPayload] {
@@ -38,7 +37,7 @@ func IsAuthorized(userToken string) dtos.DataResult[dtos.TokenPayload] {
 }
 
 func SetUserOnlineStatus(userId uint64, newStatus string, accessToken string) dtos.Result {
-	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/user/%d/online-status/%s", userId, newStatus)
+	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/users/%d/online-status/%s", userId, newStatus)
 	log.Printf("Requesting user service, URL: %s\n", requestURL)
 	res := dtos.Result{Status:false, Message: "Error"}
 
@@ -56,7 +55,7 @@ func SetUserOnlineStatus(userId uint64, newStatus string, accessToken string) dt
 }
 
 func GetUserOnlineStatus(userId uint64, accessToken string) dtos.DataResult[dtos.UserOnlineStatus] {
-	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/user/%d/online-status", userId)
+	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/users/%d/online-status", userId)
 	log.Printf("Requesting user service, URL: %s\n", requestURL)
 	res := dtos.DataResult[dtos.UserOnlineStatus]{Status:false, Message: "Error", Data: nil}
 
