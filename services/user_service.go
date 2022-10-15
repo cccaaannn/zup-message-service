@@ -13,7 +13,7 @@ import (
 var client = resty.New()
 
 func getUserServiceBasePath() string {
-	return fmt.Sprintf("%s%s", configs.AppConfig.UserServiceUrl, configs.AppConfig.UserServiceBasePath)
+	return fmt.Sprintf("%s%s", configs.AppConfig.UserServiceUrl, configs.AppConfig.UserServiceApiPathPrefix)
 }
 
 func IsAuthorized(userToken string) dtos.DataResult[dtos.TokenPayload] {

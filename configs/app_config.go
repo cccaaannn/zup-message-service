@@ -17,8 +17,8 @@ type Config struct {
 
 	ApiPathPrefix string `mapstructure:"API_PATH_PREFIX"`
 
-	UserServiceUrl      string `mapstructure:"USER_SERVICE_URL"`
-	UserServiceBasePath string `mapstructure:"USER_SERVICE_BASE_PATH"`
+	UserServiceUrl           string `mapstructure:"USER_SERVICE_URL"`
+	UserServiceApiPathPrefix string `mapstructure:"USER_SERVICE_API_PATH_PREFIX"`
 }
 
 func LoadConfig() {
