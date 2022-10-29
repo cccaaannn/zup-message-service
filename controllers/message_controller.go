@@ -52,3 +52,14 @@ func SetMessageAsRead(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(result)
 }
+
+func SetMessagesAsRead(w http.ResponseWriter, r *http.Request) {
+	userId, _ := strconv.ParseUint(r.URL.Query().Get("userId"), 0, 8)
+
+	tokenPayload := r.Context().Value(enums.TOKEN_PAYLOAD).(*dtos.TokenPayload)
+
+	result := services.SetMessagesAsRead(userId, tokenPayload)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(result)
+}

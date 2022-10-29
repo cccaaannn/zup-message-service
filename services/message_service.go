@@ -1,6 +1,7 @@
 package services
 
 import (
+	"gorm.io/gorm"
 	"bytes"
 	"encoding/json"
 	"zup-message-service/data/dtos"
@@ -47,20 +48,29 @@ func SetMessageAsRead(messageId uint64, tokenPayload *dtos.TokenPayload) dtos.Re
 	return dtos.Result{Status: true, Message: "Message status updated."}
 }
 
+func SetMessagesAsRead(userId uint64, tokenPayload *dtos.TokenPayload) dtos.Result {
+	database.Connection.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&models.Message{}).Where("from_id=? AND to_id=?", userId, tokenPayload.Id).Update("MessageStatus", 1)
+	return dtos.Result{Status: true, Message: "All messages on this conversation set as read."}
+}
+
 func CreateMessage(message *models.Message, accessToken string, tokenPayload *dtos.TokenPayload) dtos.Result {
+
+	message.MessageStatus = 0
+	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
+	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
+		// Status is set to 1 since if user is online it will be directly sent.
+		message.MessageStatus = 1
+	}
 
 	// From id is used from token for security
 	message.FromId = tokenPayload.Id
-	message.MessageStatus = 0
 	message.MessageType = "TEXT"
 
 	// Fist save entity to db to get id
 	database.Connection.Create(&message)
 
-	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
-
 	// Publish to queue if user is connected
-	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
+	if  userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
 		byteBuffer := new(bytes.Buffer)
 		json.NewEncoder(byteBuffer).Encode(message)
 		rabbitmq.PublishMessage(byteBuffer.Bytes(), rabbitmq.GetQueueNameForUser(message.ToId))
