@@ -3,6 +3,7 @@ package services
 import (
 	"gorm.io/gorm"
 	"bytes"
+	"time"
 	"encoding/json"
 	"zup-message-service/data/dtos"
 	"zup-message-service/data/models"
@@ -44,13 +45,20 @@ func SetMessageAsRead(messageId uint64, tokenPayload *dtos.TokenPayload) dtos.Re
 
 	message := messages[0]
 	message.MessageStatus = 1
+	message.ReadAt = time.Now()
 	database.Connection.Save(&message)
 	return dtos.Result{Status: true, Message: "Message status updated."}
 }
 
 func SetMessagesAsRead(userId uint64, tokenPayload *dtos.TokenPayload) dtos.Result {
-	database.Connection.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&models.Message{}).Where("from_id=? AND to_id=?", userId, tokenPayload.Id).Update("MessageStatus", 1)
+	database.Connection.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&models.Message{}).Where("from_id=? AND to_id=?", userId, tokenPayload.Id).Updates(map[string]interface{}{"MessageStatus": 1, "ReadAt": time.Now()})
 	return dtos.Result{Status: true, Message: "All messages on this conversation set as read."}
+}
+
+func GetUnreadMessageCount(tokenPayload *dtos.TokenPayload) dtos.ListDataResult[models.MessageCount] {
+	var messageCounts []models.MessageCount
+	database.Connection.Model(&models.Message{}).Select("from_id, COUNT(*)").Group("from_id").Where("to_id=? AND message_status=0", tokenPayload.Id).Find(&messageCounts)
+	return dtos.ListDataResult[models.MessageCount]{Status: true, Message: "", Data: &messageCounts}
 }
 
 func CreateMessage(message *models.Message, accessToken string, tokenPayload *dtos.TokenPayload) dtos.Result {
@@ -64,6 +72,7 @@ func CreateMessage(message *models.Message, accessToken string, tokenPayload *dt
 
 	// From id is used from token for security
 	message.FromId = tokenPayload.Id
+	message.ReadAt = time.Now()
 	message.MessageType = "TEXT"
 
 	// Fist save entity to db to get id
