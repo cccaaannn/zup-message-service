@@ -12,4 +12,5 @@ type Message struct {
 	MessageStatus int       `json:"messageStatus"`
 	MessageType   string    `json:"messageType"`
 	CreatedAt     time.Time `json:"createdAt"`
+	ReadAt        time.Time `json:"readAt"`
 }
