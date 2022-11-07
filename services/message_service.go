@@ -12,18 +12,6 @@ import (
 	"zup-message-service/utils/rabbitmq"
 )
 
-// func GetUnreadMessages(toId uint64, tokenPayload *dtos.TokenPayload) dtos.DataResult[[]models.Message] {
-// 	var messages []models.Message
-// 	database.Connection.Where("from_id=? AND to_id=? AND message_status=0", tokenPayload.Id, toId).Find(&messages)
-// 	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
-// }
-
-// func GetUnReadMessagesAfter(messageId uint64, toId uint64) dtos.DataResult[[]models.Message] {
-// 	var messages []models.Message
-// 	database.Connection.Where("id>? AND to_id=? AND message_status=0", messageId, toId).Find(&messages)
-// 	return dtos.DataResult[[]models.Message]{Status: true, Message: "", Data: &messages}
-// }
-
 func GetConversation(toId uint64, pagination dtos.Pagination, tokenPayload *dtos.TokenPayload) dtos.DataResult[dtos.Pagination] {
 	var messages []models.Message
 	// database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", tokenPayload.Id, toId, toId, tokenPayload.Id).Find(&messages)
@@ -37,7 +25,7 @@ func GetConversation(toId uint64, pagination dtos.Pagination, tokenPayload *dtos
 
 func SetMessageAsRead(messageId uint64, tokenPayload *dtos.TokenPayload) dtos.Result {
 	var messages []models.Message
-	database.Connection.Where("id=? AND from_id=?", messageId, tokenPayload.Id).Find(&messages)
+	database.Connection.Where("id=? AND to_id=?", messageId, tokenPayload.Id).Find(&messages)
 
 	if len(messages) == 0 {
 		return dtos.Result{Status: false, Message: "Message is not belongs to user."}
@@ -65,10 +53,10 @@ func CreateMessage(message *models.Message, accessToken string, tokenPayload *dt
 
 	message.MessageStatus = 0
 	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
-	if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
-		// Status is set to 1 since if user is online it will be directly sent.
-		message.MessageStatus = 1
-	}
+	// if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
+	// 	// Status is set to 1 since if user is online it will be directly sent.
+	// 	message.MessageStatus = 1
+	// }
 
 	// From id is used from token for security
 	message.FromId = tokenPayload.Id

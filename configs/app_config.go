@@ -22,7 +22,7 @@ type Config struct {
 }
 
 func LoadConfig() {
-	log.Println("Loading system env variables...")
+	log.Println("[Config] Loading system env variables...")
 
 	/*
 	 * Since I couldn't find any better lib alternative, before reading env values from file read them from sys env to override file values
@@ -32,28 +32,28 @@ func LoadConfig() {
 	for i := 0; i < appConfigTempFields.Type().NumField(); i++ {
 		envName := appConfigTempFields.Type().Field(i).Tag.Get("mapstructure")
 		envValue := os.Getenv(envName)
-		log.Printf("%s=%s\n", envName, envValue)
+		log.Printf("[Config] %s=%s\n", envName, envValue)
 		reflect.ValueOf(&appConfigTemp).Elem().Field(i).SetString(envValue)
 	}
 
-	log.Printf("Loading file env variables...\n\n")
+	log.Printf("[Config] Loading file env variables...\n\n")
 	viper.AddConfigPath(".")
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Printf("Error while reading config file %s\n", err)
+		log.Printf("[Config] Error while reading config file %s\n", err)
 	}
 
 	err = viper.Unmarshal(&AppConfig)
 	if err != nil {
-		log.Println(err)
+		log.Println("[Config] ", err)
 	}
 
 	/*
 	* Replace file env variables with system.
 	 */
-	log.Println("Final env variables. (System overrides)")
+	log.Println("[Config] Final env variables. (System overrides)")
 	for i := 0; i < appConfigTempFields.Type().NumField(); i++ {
 		envName := appConfigTempFields.Type().Field(i).Tag.Get("mapstructure")
 		envValue := reflect.ValueOf(appConfigTemp).Field(i).String()
@@ -64,10 +64,10 @@ func LoadConfig() {
 		}
 
 		if envValue == "" {
-			log.Fatalf("Environment value %s is not defined.", envName)
+			log.Fatalf("[Config] Environment value %s is not defined.", envName)
 		}
 
-		log.Printf("%s=%s\n", envName, envValue)
+		log.Printf("[Config] %s=%s\n", envName, envValue)
 	}
 
 }

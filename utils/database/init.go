@@ -21,12 +21,12 @@ func Connect(connectionString string) {
 
 	if err != nil {
 		log.Fatal(err)
-		panic("Cannot connect to DB")
+		panic("[PostgreSQL] Cannot connect to DB")
 	}
-	log.Printf("Connected to DB with %s", connectionString)
+	log.Printf("[PostgreSQL] Connected to DB with %s", connectionString)
 }
 
 func Migrate() {
 	Connection.AutoMigrate(&models.Message{})
-	log.Println("Database migration completed...")
+	log.Println("[PostgreSQL] Database migration completed...")
 }

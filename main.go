@@ -42,7 +42,7 @@ func main() {
 	handler := cors.AllowAll().Handler(router)
 
 	// Start the server
-	log.Println(fmt.Sprintf("Starting Server on port %s", configs.AppConfig.Port))
+	log.Println(fmt.Sprintf("[Main] Starting Server on port %s", configs.AppConfig.Port))
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", configs.AppConfig.Port), handler))
 
 }
