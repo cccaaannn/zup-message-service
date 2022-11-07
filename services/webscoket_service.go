@@ -40,10 +40,15 @@ func HandleWebsocketConnection(w http.ResponseWriter, r *http.Request) {
 	defer ws_conn.Close()
 
 	// rabbitmq channel
-	rabbit_channel, err := rabbitmq.Connection.Channel()
+	rabbit_channel, err := rabbitmq.GetChannel()
 	if err != nil {
-		log.Println(err)
-		return
+		log.Println("[WebsocketService] RabbitMQ connection not presents error:", err)
+		rabbitmq.Reconnect(3)
+		rabbit_channel, err = rabbitmq.GetChannel()
+		if err != nil {
+			log.Println("[WebsocketService] Reconnection failed, socket is not created.")
+			return
+		}
 	}
 	defer rabbit_channel.Close()
 
@@ -56,7 +61,7 @@ func HandleWebsocketConnection(w http.ResponseWriter, r *http.Request) {
 
 	// make user online
 	SetUserOnlineStatus(userId, enums.USER_ONLINE, token)
-	log.Printf("User %d is online.\n", userId)
+	log.Printf("[WebsocketService] User %d is online.\n", userId)
 
 	// check for dc
 	go closeOnDisconnect(ws_conn, rabbit_channel, userId, token)
@@ -64,7 +69,7 @@ func HandleWebsocketConnection(w http.ResponseWriter, r *http.Request) {
 	for message := range messages {
 		json_message, _ := json.Marshal(string(message.Body))
 
-		log.Printf("User %d is received a message.\n", userId)
+		log.Printf("[WebsocketService] User %d is received a message.\n", userId)
 
 		err := ws_conn.WriteMessage(1, json_message)
 

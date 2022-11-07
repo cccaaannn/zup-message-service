@@ -1,30 +1,63 @@
 package rabbitmq
 
 import (
+	"errors"
 	"log"
+	"time"
 
 	"github.com/streadway/amqp"
 )
 
 var Connection *amqp.Connection
 var publisherChannel *amqp.Channel
+var _connectionString string
 var err error
 
 func Connect(connectionString string) {
+	_connectionString = connectionString // store connectionString to use on reconnect
 	Connection, err = amqp.Dial(connectionString)
 
 	if err != nil {
 		log.Fatal(err)
-		panic("Cannot connect to RabbitMQ")
+		panic("[RabbitMQ] Cannot connect to RabbitMQ")
 	}
 
 	publisherChannel, err = Connection.Channel()
 	if err != nil {
 		log.Fatal(err)
-		panic("Cannot connect to RabbitMQ channel")
+		panic("[RabbitMQ] Cannot connect to RabbitMQ channel")
 	}
 
-	log.Printf("Connected to RabbitMQ with %s", connectionString)
+	log.Printf("[RabbitMQ] Connected to RabbitMQ with %s", connectionString)
+}
+
+func Reconnect(retries int) bool {
+	if _connectionString == "" {
+		log.Println("[RabbitMQ] connectionString is not initialized, 'Connect()' must be called before using 'Reconnect()'")
+		return false
+	}
+
+	for i := 0; i < retries; i++ {
+		log.Println("[RabbitMQ] Attempting to reconnect to RabbitMQ")
+		Connect(_connectionString)
+		_, err := Connection.Channel()
+		if err == nil {
+			log.Printf("[RabbitMQ] Reconnected successfully on attempt number (%d) \n", i+1)
+			return true
+		}
+
+		// This will hang all incoming messages since it is not async, but without RabbitMQ service is dead anyways so it worths the shot
+		time.Sleep(100 * time.Millisecond)
+	}
+	log.Printf("[RabbitMQ] Could not been reconnected on attempt number (%d) \n", retries)
+	return false
+}
+
+func GetChannel() (*amqp.Channel, error) {
+	if Connection == nil {
+		return nil, errors.New("[RabbitMQ] Connection is nil, most likely never initialized")
+	}
+	return Connection.Channel()
 }
 
 func CreateQueue(channel *amqp.Channel, queueName string) {
@@ -38,7 +71,7 @@ func CreateQueue(channel *amqp.Channel, queueName string) {
 	)
 	if err != nil {
 		log.Fatal(err)
-		panic("Cannot create RabbitMQ queue")
+		panic("[RabbitMQ] Cannot create RabbitMQ queue")
 	}
 }
 
