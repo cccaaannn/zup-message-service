@@ -18,7 +18,7 @@ func getUserServiceBasePath() string {
 
 func IsAuthorized(userToken string) dtos.DataResult[dtos.TokenPayload] {
 	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/authorization/%s", userToken)
-	log.Printf("Requesting user service, URL: %s\n", requestURL)
+	log.Printf("[UserService] Requesting user service, URL: %s\n", requestURL)
 	res := dtos.DataResult[dtos.TokenPayload]{Status:false, Message: "Error", Data: nil}
 	
 	resp, err := client.R().EnableTrace().Get(requestURL)
@@ -32,13 +32,13 @@ func IsAuthorized(userToken string) dtos.DataResult[dtos.TokenPayload] {
         fmt.Println(err)
     }
 
-	log.Printf("Response from user service: %+v\n\n", res)
+	log.Printf("[UserService] Response from user service: %+v\n\n", res)
 	return res
 }
 
 func SetUserOnlineStatus(userId uint64, newStatus string, accessToken string) dtos.Result {
 	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/users/%d/online-status/%s", userId, newStatus)
-	log.Printf("Requesting user service, URL: %s\n", requestURL)
+	log.Printf("[UserService] Requesting user service, URL: %s\n", requestURL)
 	res := dtos.Result{Status:false, Message: "Error"}
 
 	resp, err := client.R().
@@ -50,13 +50,13 @@ func SetUserOnlineStatus(userId uint64, newStatus string, accessToken string) dt
 		fmt.Println(err)
 	}
 
-	log.Printf("Response from user service: %+v\n\n", res)
+	log.Printf("[UserService] Response from user service: %+v\n\n", res)
 	return res
 }
 
 func GetUserOnlineStatus(userId uint64, accessToken string) dtos.DataResult[dtos.UserOnlineStatus] {
 	requestURL := fmt.Sprintf(getUserServiceBasePath() + "/users/%d/online-status", userId)
-	log.Printf("Requesting user service, URL: %s\n", requestURL)
+	log.Printf("[UserService] Requesting user service, URL: %s\n", requestURL)
 	res := dtos.DataResult[dtos.UserOnlineStatus]{Status:false, Message: "Error", Data: nil}
 
 	resp, err := client.R().
@@ -68,6 +68,6 @@ func GetUserOnlineStatus(userId uint64, accessToken string) dtos.DataResult[dtos
 		fmt.Println(err)
 	}
 
-	log.Printf("Response from user service: %+v\n\n", res)
+	log.Printf("[UserService] Response from user service: %+v\n\n", res)
 	return res
 }
