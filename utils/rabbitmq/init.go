@@ -8,27 +8,32 @@ import (
 	"github.com/streadway/amqp"
 )
 
-var Connection *amqp.Connection
+var connection *amqp.Connection
 var publisherChannel *amqp.Channel
 var _connectionString string
-var err error
+var retry_count = 5
 
 func Connect(connectionString string) {
 	_connectionString = connectionString // store connectionString to use on reconnect
-	Connection, err = amqp.Dial(connectionString)
+	var err error = nil
+	connection, err = amqp.Dial(connectionString)
 
 	if err != nil {
 		log.Fatal(err)
 		panic("[RabbitMQ] Cannot connect to RabbitMQ")
 	}
 
-	publisherChannel, err = Connection.Channel()
+	publisherChannel, err = connection.Channel()
 	if err != nil {
-		log.Fatal(err)
-		panic("[RabbitMQ] Cannot connect to RabbitMQ channel")
+		log.Println("[RabbitMQ] Cannot connect to RabbitMQ channel. error: ", err)
 	}
 
 	log.Printf("[RabbitMQ] Connected to RabbitMQ with %s", connectionString)
+}
+
+func Disconnect() {
+	publisherChannel.Close()
+	connection.Close()
 }
 
 func Reconnect(retries int) bool {
@@ -40,7 +45,7 @@ func Reconnect(retries int) bool {
 	for i := 0; i < retries; i++ {
 		log.Println("[RabbitMQ] Attempting to reconnect to RabbitMQ")
 		Connect(_connectionString)
-		_, err := Connection.Channel()
+		_, err := connection.Channel()
 		if err == nil {
 			log.Printf("[RabbitMQ] Reconnected successfully on attempt number (%d) \n", i+1)
 			return true
@@ -53,15 +58,32 @@ func Reconnect(retries int) bool {
 	return false
 }
 
+/*
+ * This function has retry logic in it since all communication is done by first retrieving channel from this function .
+ */
 func GetChannel() (*amqp.Channel, error) {
-	if Connection == nil {
-		return nil, errors.New("[RabbitMQ] Connection is nil, most likely never initialized")
+	// Retry on nil connection
+	if connection == nil {
+		reconnect_result := Reconnect(retry_count)
+		if !reconnect_result {
+			return nil, errors.New("[RabbitMQ] could not reconnected")
+		}
 	}
-	return Connection.Channel()
+
+	// Retry on channel error
+	_, err := connection.Channel()
+	if err != nil {
+		reconnect_result := Reconnect(retry_count)
+		if !reconnect_result {
+			return nil, errors.New("[RabbitMQ] could not reconnected")
+		}
+	}
+
+	return connection.Channel()
 }
 
-func CreateQueue(channel *amqp.Channel, queueName string) {
-	_, err = channel.QueueDeclare(
+func createQueue(channel *amqp.Channel, queueName string) {
+	_, err := channel.QueueDeclare(
 		queueName, // queue name
 		false,     // durable
 		true,      // auto delete
@@ -70,18 +92,12 @@ func CreateQueue(channel *amqp.Channel, queueName string) {
 		nil,       // arguments
 	)
 	if err != nil {
-		log.Fatal(err)
-		panic("[RabbitMQ] Cannot create RabbitMQ queue")
+		log.Println("[RabbitMQ] Cannot create RabbitMQ queue. error: ", err)
 	}
 }
 
-func Disconnect() {
-	publisherChannel.Close()
-	Connection.Close()
-}
-
 func PublishMessage(messageBody []byte, queueName string) {
-	CreateQueue(publisherChannel, queueName)
+	createQueue(publisherChannel, queueName)
 
 	message := amqp.Publishing{
 		ContentType: "text/plain",
@@ -96,12 +112,12 @@ func PublishMessage(messageBody []byte, queueName string) {
 		false,     // immediate
 		message,   // message to publish
 	); err != nil {
-		log.Println(err)
+		log.Println("[RabbitMQ] Cannot publish message to RabbitMQ queue. error: ", err)
 	}
 }
 
 func GetConsumer(channel *amqp.Channel, queueName string) (<-chan amqp.Delivery, error) {
-	CreateQueue(channel, queueName)
+	createQueue(channel, queueName)
 
 	// Subscribing to QueueService1 for getting messages.
 	messagesConsumer, err := channel.Consume(
@@ -114,7 +130,7 @@ func GetConsumer(channel *amqp.Channel, queueName string) (<-chan amqp.Delivery,
 		nil,       // arguments
 	)
 	if err != nil {
-		log.Println(err)
+		log.Println("[RabbitMQ] Cannot get RabbitMQ consumer channel. error: ", err)
 	}
 	return messagesConsumer, err
 }

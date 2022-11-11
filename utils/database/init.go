@@ -27,6 +27,7 @@ func Connect(connectionString string) {
 }
 
 func Migrate() {
+	log.Println("[PostgreSQL] Database migration started")
 	Connection.AutoMigrate(&models.Message{})
-	log.Println("[PostgreSQL] Database migration completed...")
+	log.Println("[PostgreSQL] Database migration completed")
 }

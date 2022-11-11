@@ -1,6 +1,7 @@
 package services
 
 import (
+	"log"
 	"gorm.io/gorm"
 	"bytes"
 	"time"
@@ -14,8 +15,6 @@ import (
 
 func GetConversation(toId uint64, pagination dtos.Pagination, tokenPayload *dtos.TokenPayload) dtos.DataResult[dtos.Pagination] {
 	var messages []models.Message
-	// database.Connection.Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id", tokenPayload.Id, toId, toId, tokenPayload.Id).Find(&messages)
-
 	tx := database.Connection.Model(messages).Where("(from_id=? AND to_id=?) OR (from_id=? AND to_id=?)", tokenPayload.Id, toId, toId, tokenPayload.Id)
 	tx.Scopes(database.Paginate(&pagination, tx)).Find(&messages)
 	pagination.Content = messages
@@ -50,23 +49,19 @@ func GetUnreadMessageCount(tokenPayload *dtos.TokenPayload) dtos.ListDataResult[
 }
 
 func CreateMessage(message *models.Message, accessToken string, tokenPayload *dtos.TokenPayload) dtos.Result {
-
-	message.MessageStatus = 0
-	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
-	// if userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
-	// 	// Status is set to 1 since if user is online it will be directly sent.
-	// 	message.MessageStatus = 1
-	// }
+	log.Printf("[MessageService] User %d is sending a message to %d\n", tokenPayload.Id, message.ToId)
 
 	// From id is used from token for security
 	message.FromId = tokenPayload.Id
 	message.ReadAt = time.Now()
 	message.MessageType = "TEXT"
-
+	message.MessageStatus = 0
+	
 	// Fist save entity to db to get id
 	database.Connection.Create(&message)
-
+	
 	// Publish to queue if user is connected
+	userOnlineStatusResult := GetUserOnlineStatus(message.ToId, accessToken)
 	if  userOnlineStatusResult.Status && userOnlineStatusResult.Data.OnlineStatus == enums.USER_ONLINE {
 		byteBuffer := new(bytes.Buffer)
 		json.NewEncoder(byteBuffer).Encode(message)

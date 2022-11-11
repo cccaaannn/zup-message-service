@@ -42,20 +42,15 @@ func HandleWebsocketConnection(w http.ResponseWriter, r *http.Request) {
 	// rabbitmq channel
 	rabbit_channel, err := rabbitmq.GetChannel()
 	if err != nil {
-		log.Println("[WebsocketService] RabbitMQ connection not presents error:", err)
-		rabbitmq.Reconnect(3)
-		rabbit_channel, err = rabbitmq.GetChannel()
-		if err != nil {
-			log.Println("[WebsocketService] Reconnection failed, socket is not created.")
-			return
-		}
+		log.Println("[WebsocketService] RabbitMQ connection not presents, socket is not created. error:", err)
+		return
 	}
 	defer rabbit_channel.Close()
 
 	// Get consumer
 	messages, err := rabbitmq.GetConsumer(rabbit_channel, rabbitmq.GetQueueNameForUser(userId))
 	if err != nil {
-		log.Println(err)
+		log.Println("[WebsocketService] could not get RabbitMQ consumer channel", err)
 		return
 	}
 
@@ -85,6 +80,7 @@ func closeOnDisconnect(ws_conn *websocket.Conn, rabbit_channel *amqp.Channel, us
 		time.Sleep(time.Second)
 		_, _, err := ws_conn.ReadMessage()
 		if err != nil {
+			log.Printf("[WebsocketService] User %d is disconnected.\n", userId)
 			rabbit_channel.Close()
 			ws_conn.Close()
 			SetUserOnlineStatus(userId, enums.USER_OFFLINE, token)
